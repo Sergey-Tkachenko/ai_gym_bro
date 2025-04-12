@@ -1,6 +1,6 @@
 {
     "name": "Telegram Bot Development",
-    "dockerFile": "../Dockerfile",
+    "dockerFile": "../Dockerfile.dev",
     "customizations": {
         "vscode": {
             "extensions": [
@@ -15,7 +15,7 @@
                 "python.linting.pylintEnabled": false,
                 "python.formatting.provider": "ruff",
                 "editor.formatOnSave": true,
-                "editor.rulers": [88],
+                "editor.rulers": [120],
                 "files.exclude": {
                     "**/__pycache__": true,
                     "**/.pytest_cache": true,
@@ -24,10 +24,8 @@
             }
         }
     },
-    "remoteUser": "appuser",
     "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
     "workspaceFolder": "/app",
-    "postCreateCommand": "poetry config virtualenvs.create false && poetry install",
     "forwardPorts": [],
     "runArgs": ["--env-file", ".env"]
 } 

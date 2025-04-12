@@ -1,0 +1,11 @@
+FROM ai_gym_bro:latest
+
+# Install additional development dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Poetry and install dependencies
+WORKDIR /app
+

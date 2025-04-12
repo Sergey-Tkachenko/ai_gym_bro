@@ -20,9 +20,6 @@ RUN apt-get update \
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
-# Create a non-root user
-RUN useradd -m -u 1000 appuser
-
 # Set working directory
 WORKDIR /app
 
@@ -33,14 +30,4 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction
 
-# Copy the rest of the application
-COPY bot bot
-
-# Change ownership of the app directory
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
-
-# Set the entrypoint
 ENTRYPOINT ["poetry", "run"] 
