@@ -12,8 +12,9 @@
     ASK_INJURIES,
     SELECT_GOAL,
     GENERATING_PLAN,
-    REFINING_PLAN,
-) = range(11) # Use range for simplicity
+    AWAITING_REFINEMENT_CHOICE,
+    AWAITING_REFINEMENT_INPUT,
+) = range(12) # Updated range
 
 # Goal options
 HYPERTROPHY = "Hypertrophy"
@@ -31,8 +32,12 @@ USER_DATA_DEADLIFT = "deadlift"
 USER_DATA_INJURIES = "injuries"
 USER_DATA_GOAL = "goal"
 USER_DATA_PLAN = "plan"
-USER_DATA_HISTORY = "history" # To store conversation for refinement 
+USER_DATA_HISTORY = "history" # To store conversation for refinement
+USER_DATA_REFINEMENT_TYPE = "refinement_type" # New key: 'ask' or 'modify'
 
+# Refinement choice options (callback data)
+ASK_QUESTION_CALLBACK = "refine_ask"
+MODIFY_PLAN_CALLBACK = "refine_modify"
 
 # Define command descriptions
 COMMAND_DESCRIPTIONS = {

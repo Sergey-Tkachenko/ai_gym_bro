@@ -13,11 +13,13 @@ from telegram.ext import (
 from ai_gym_bro.services import openai_service # Use the alias
 from ai_gym_bro.handlers.common import (
     ASK_AGE, ASK_HEIGHT, ASK_WEIGHT, ASK_EXPERIENCE, ASK_SQUAT, ASK_BENCH,
-    ASK_DEADLIFT, ASK_INJURIES, SELECT_GOAL, GENERATING_PLAN, REFINING_PLAN,
+    ASK_DEADLIFT, ASK_INJURIES, SELECT_GOAL, GENERATING_PLAN,
+    AWAITING_REFINEMENT_CHOICE, AWAITING_REFINEMENT_INPUT, # Updated states
     GOAL_OPTIONS, HYPERTROPHY, POWERLIFTING,
+    ASK_QUESTION_CALLBACK, MODIFY_PLAN_CALLBACK, # Refinement callback data
     USER_DATA_AGE, USER_DATA_HEIGHT, USER_DATA_WEIGHT, USER_DATA_EXPERIENCE,
     USER_DATA_SQUAT, USER_DATA_BENCH, USER_DATA_DEADLIFT, USER_DATA_INJURIES,
-    USER_DATA_GOAL, USER_DATA_PLAN, USER_DATA_HISTORY
+    USER_DATA_GOAL, USER_DATA_PLAN, USER_DATA_HISTORY, USER_DATA_REFINEMENT_TYPE # New user data key
 )
 from ai_gym_bro.handlers.start_handler import start, cancel # Import start for entry point, cancel for fallback
 
@@ -107,7 +109,7 @@ async def received_injuries(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return SELECT_GOAL
 
 async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Stores the selected goal, starts plan generation, and transitions."""
+    """Stores the selected goal, starts plan generation, presents plan and asks for refinement choice."""
     query = update.callback_query
     await query.answer() # Acknowledge callback
     goal = query.data
@@ -130,12 +132,24 @@ async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             ]
 
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Here is your initial workout plan:")
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=plan)
+            # Send plan in chunks if too long (Telegram limit is 4096 chars)
+            # Simple chunking for now
+            for i in range(0, len(plan), 4000):
+                await context.bot.send_message(chat_id=update.effective_chat.id, text=plan[i:i+4000])
+
+            # Present refinement options
+            keyboard = [
+                [InlineKeyboardButton("❓ Ask a Question", callback_data=ASK_QUESTION_CALLBACK)],
+                [InlineKeyboardButton("✏️ Suggest Modification", callback_data=MODIFY_PLAN_CALLBACK)],
+                [InlineKeyboardButton("🏁 Finish (Cancel)", callback_data="cancel_refinement")] # Option to exit loop
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="What do you think? You can ask questions about it or suggest modifications (e.g., 'make it shorter', 'explain the first exercise', 'add more volume'). Type /cancel to finish."
+                text="What would you like to do next?",
+                reply_markup=reply_markup
             )
-            return REFINING_PLAN
+            return AWAITING_REFINEMENT_CHOICE # Go to new state
         else:
             logger.error(f"Plan generation failed for user {update.effective_user.id}")
             await context.bot.send_message(
@@ -154,11 +168,42 @@ async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         context.user_data.clear()
         return ConversationHandler.END
 
-async def received_refinement_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handles user requests for plan refinement or questions."""
+# New handler for refinement choice buttons
+async def received_refinement_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handles the user's choice between asking a question or suggesting modification."""
+    query = update.callback_query
+    await query.answer()
+    choice = query.data
+
+    if choice == ASK_QUESTION_CALLBACK:
+        logger.info(f"User {update.effective_user.id} chose to ask a question.")
+        context.user_data[USER_DATA_REFINEMENT_TYPE] = 'ask'
+        await query.edit_message_text(text="Okay, please type your question about the plan.")
+        return AWAITING_REFINEMENT_INPUT
+    elif choice == MODIFY_PLAN_CALLBACK:
+        logger.info(f"User {update.effective_user.id} chose to suggest modification.")
+        context.user_data[USER_DATA_REFINEMENT_TYPE] = 'modify'
+        await query.edit_message_text(text="Okay, please describe the modification you'd like to suggest.")
+        return AWAITING_REFINEMENT_INPUT
+    elif choice == "cancel_refinement":
+        logger.info(f"User {update.effective_user.id} chose to finish refinement.")
+        await query.edit_message_text(text="Got it. Plan finalized! Send /start to create a new one.")
+        # Keep user_data for potential future reference? Or clear?
+        # context.user_data.clear() # Optional: clear if conversation is truly done
+        return ConversationHandler.END
+    else:
+        logger.warning(f"Received unexpected callback data in refinement choice: {choice}")
+        await query.edit_message_text(text="Sorry, something went wrong. Please try again or use /cancel.")
+        # Stay in the same state or end? Let's stay for now.
+        return AWAITING_REFINEMENT_CHOICE
+
+# Renamed from received_refinement_request
+async def process_refinement_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handles user's text input for refinement/questions after choice."""
     user_request = update.message.text
     user = update.effective_user
-    logger.info(f"User {user.id} refinement request: {user_request}")
+    refinement_type = context.user_data.get(USER_DATA_REFINEMENT_TYPE, 'unknown')
+    logger.info(f"User {user.id} refinement input (type: {refinement_type}): {user_request}")
 
     if USER_DATA_HISTORY not in context.user_data or not context.user_data[USER_DATA_HISTORY]:
         logger.warning(f"User {user.id} in refinement state but no history found.")
@@ -167,6 +212,9 @@ async def received_refinement_request(update: Update, context: ContextTypes.DEFA
         return ConversationHandler.END
 
     history = context.user_data[USER_DATA_HISTORY]
+    # Add context about the type of request for the LLM?
+    # E.g.: history.append({"role": "user", "content": f"My request ({refinement_type}): {user_request}"})
+    # For now, just add the raw request:
     history.append({"role": "user", "content": user_request})
 
     await update.message.reply_text("Got it. Thinking about your request... 🤔")
@@ -175,28 +223,60 @@ async def received_refinement_request(update: Update, context: ContextTypes.DEFA
         response = await openai_service.refine_plan(history, user_request)
 
         if response:
-            history.append({"role": "assistant", "content": response})
+            # Check response length for Telegram
+            if len(response) > 4096:
+                logger.warning("Refinement response exceeds Telegram limit. Sending truncated.")
+                response_part = response[:4000] + "... (response truncated)"
+            else:
+                response_part = response
+
+            history.append({"role": "assistant", "content": response_part}) # Store potentially truncated response in history?
             context.user_data[USER_DATA_HISTORY] = history # Update history
             # Note: We might want to update USER_DATA_PLAN if the response implies a full plan change
             # For MVP, we just show the response.
-            await update.message.reply_text(response)
-            await update.message.reply_text("Anything else? Ask more questions, suggest further modifications, or type /cancel.")
-            return REFINING_PLAN # Stay in refinement loop
+            await update.message.reply_text(response_part)
+
+            # Go back to asking for choice
+            keyboard = [
+                [InlineKeyboardButton("❓ Ask Another Question", callback_data=ASK_QUESTION_CALLBACK)],
+                [InlineKeyboardButton("✏️ Suggest Another Modification", callback_data=MODIFY_PLAN_CALLBACK)],
+                [InlineKeyboardButton("🏁 Finish (Cancel)", callback_data="cancel_refinement")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "What would you like to do next?",
+                reply_markup=reply_markup
+            )
+            return AWAITING_REFINEMENT_CHOICE # Loop back to choice state
         else:
             logger.error(f"Plan refinement failed for user {user.id}")
-            # Remove the user's last message from history if API failed
-            history.pop()
-            context.user_data[USER_DATA_HISTORY] = history
-            await update.message.reply_text("Sorry, I couldn't process that request. Try rephrasing or type /cancel.")
-            return REFINING_PLAN
+            # Go back to asking for choice after failure?
+            keyboard = [
+                [InlineKeyboardButton("❓ Try Asking Question", callback_data=ASK_QUESTION_CALLBACK)],
+                [InlineKeyboardButton("✏️ Try Suggesting Modification", callback_data=MODIFY_PLAN_CALLBACK)],
+                [InlineKeyboardButton("🏁 Cancel", callback_data="cancel_refinement")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "Sorry, I couldn't process that request. Try rephrasing or choose an option:",
+                reply_markup=reply_markup
+            )
+            return AWAITING_REFINEMENT_CHOICE # Loop back to choice state even on failure
 
     except Exception as e:
         logger.exception(f"Exception during plan refinement for user {user.id}: {e}")
-        # Remove the user's last message from history on exception
-        history.pop()
-        context.user_data[USER_DATA_HISTORY] = history
-        await update.message.reply_text("An unexpected error occurred. Please try again or type /cancel.")
-        return REFINING_PLAN
+        # Go back to asking for choice after exception?
+        keyboard = [
+            [InlineKeyboardButton("❓ Try Asking Question", callback_data=ASK_QUESTION_CALLBACK)],
+            [InlineKeyboardButton("✏️ Try Suggesting Modification", callback_data=MODIFY_PLAN_CALLBACK)],
+            [InlineKeyboardButton("🏁 Cancel", callback_data="cancel_refinement")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            "An unexpected error occurred. Please try again or choose an option:",
+            reply_markup=reply_markup
+        )
+        return AWAITING_REFINEMENT_CHOICE # Loop back to choice state on exception
 
 async def unknown_state_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles messages received in an unexpected state or with unexpected commands."""
@@ -222,10 +302,17 @@ def create_workflow_handler() -> ConversationHandler:
             ASK_INJURIES: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_injuries)],
             SELECT_GOAL: [CallbackQueryHandler(received_goal)],
             # Note: GENERATING_PLAN is a transient state handled within received_goal
-            REFINING_PLAN: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_refinement_request)],
+            AWAITING_REFINEMENT_CHOICE: [
+                CallbackQueryHandler(received_refinement_choice, pattern=f"^({ASK_QUESTION_CALLBACK}|{MODIFY_PLAN_CALLBACK}|cancel_refinement)$")
+                # Add MessageHandler here? Or handle unexpected text via fallback?
+            ],
+            AWAITING_REFINEMENT_INPUT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_refinement_input)
+            ],
         },
         fallbacks=[
             MessageHandler(filters.Regex("^/cancel$"), cancel), # Use cancel from start_handler
+            CallbackQueryHandler(cancel, pattern="^cancel_refinement$"), # Handle cancel button from refinement choice
             MessageHandler(filters.COMMAND, unknown_state_handler), # Handle unexpected commands
             MessageHandler(filters.ALL, unknown_state_handler)      # Handle unexpected message types
         ],
