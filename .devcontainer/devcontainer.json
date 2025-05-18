@@ -1,6 +1,7 @@
 {
     "name": "Telegram Bot Development",
-    "dockerFile": "../Dockerfile.dev",
+    "dockerComposeFile": "../docker-compose.yaml",
+    "service": "app",
     "customizations": {
         "vscode": {
             "extensions": [
@@ -26,6 +27,5 @@
     },
     "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
     "workspaceFolder": "/app",
-    "forwardPorts": [],
-    "runArgs": ["--env-file", ".env"]
+    "forwardPorts": []
 } 
