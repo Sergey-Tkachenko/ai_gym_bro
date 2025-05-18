@@ -6,16 +6,17 @@ from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from loguru import logger
-from openai import AsyncOpenAI, OpenAIError # Import necessary parts
+from langfuse.openai import AsyncOpenAI
+from openai import OpenAIError
 
 # --- Constants --- #
-MODEL_NAME = "gpt-4o-mini"
-MAX_TOKENS_PLAN = 1500 # Adjust as needed for plan length
-MAX_TOKENS_REFINEMENT = 500 # Adjust as needed for refinement responses
-TEMPERATURE = 0.7 # Adjust for creativity vs determinism
+MODEL_NAME = "gpt-4.1"
+MAX_TOKENS_PLAN = 1500  # Adjust as needed for plan length
+MAX_TOKENS_REFINEMENT = 500  # Adjust as needed for refinement responses
+TEMPERATURE = 0.7  # Adjust for creativity vs determinism
 
 # --- Load API Key --- #
-load_dotenv(override=True) # Ensure environment variables are loaded
+load_dotenv(override=True)  # Ensure environment variables are loaded
 API_KEY = os.getenv("OPENAI_API_KEY")
 if not API_KEY:
     logger.critical("OPENAI_API_KEY environment variable not found!")
@@ -29,40 +30,51 @@ aclient = AsyncOpenAI(api_key=API_KEY) if API_KEY else None
 
 # --- System Prompts (Consider moving to config/YAML later) --- #
 SYSTEM_PROMPT_PLAN_GENERATION = f"""
-You are an expert Strength and Conditioning coach specializing in creating personalized workout plans for resistance training athletes using Telegram.
+You think in English but output entirely in Russian.
 
-Your task is to generate a detailed, weekly workout plan based *strictly* on the user's provided information and their primary goal (Hypertrophy or Powerlifting).
+**Общая структура:**
+- 5-недельная программа с периодизацией: для каждого упражнения указывайте % от 1RM, кол-во подходов и повторений для каждой из 5 недель.
+- В зависимости от опыта:
+  - **Beginner/Intermediate:** 3 трен-дня в неделю.
+  - **Advanced:** 5 трен-дней в неделю.
+- Формат дней: «День 1», «День 2» … «День 5» (если нужно).
+- Разделы каждого дня:
+  1. **Разминка** (2–3 упражнения)
+  2. **Основные упражнения** (3–5 движений)
+  3. **Вспомогательные упражнения** (2–4 движения)
 
-**Instructions:**
-1.  **Analyze User Data:** Carefully consider the user's age, height, weight, experience level, current strength levels (squat, bench, deadlift 1RMs or recent bests), and any mentioned injuries/limitations.
-2.  **Select Goal Focus:**
-    *   **Hypertrophy:** Prioritize exercises, set/rep schemes (e.g., 3-5 sets of 8-15 reps), and potentially techniques known to induce muscle growth. Include accessory movements.
-    *   **Powerlifting:** Focus on improving the squat, bench press, and deadlift. Structure the plan around these lifts (e.g., using percentages of 1RM, lower reps like 3-6), and include relevant accessory work for strength.
-3.  **Structure:** Provide a clear weekly schedule (e.g., Day 1, Day 2, Rest, Day 3...). For each workout day, list exercises with specific sets, reps, and suggested rest times. If possible, provide guidance on selecting appropriate weights based on their provided strength levels (e.g., "Work up to a heavy set of 5" or "Use a weight you can perform 10 reps with").
-4.  **Injuries:** Account for mentioned injuries. Either suggest alternative exercises or advise caution around specific movements. If an injury significantly impacts a core lift for their goal, acknowledge this limitation.
-5.  **Format:** Use Markdown for clear formatting (bolding exercises, bullet points for sets/reps).
-6.  **Tone:** Be encouraging, knowledgeable, and professional.
-7.  **Conciseness:** Generate the plan directly without introductory or concluding pleasantries beyond the structured plan itself. The plan should fit within Telegram message limits (aim for under {MAX_TOKENS_PLAN} tokens).
+**Инструкции:**
+1. Анализируйте возраст, рост, вес, опыт, уровень (1RM) и травмы только для оценки уровня — в плане используйте **только проценты**.
+2. По цели:
+   - **Гипертрофия:** 8–15 повторений.
+   - **Пауэрлифтинг:** 3–6 повторений.
+3. Для каждого упражнения дайте таблицу или маркированный список:
+   - Неделя 1: X % × Y подходов × Z повторений
+   - …
+   - Неделя 5: X % × Y подходов × Z повторений
+4. Учитывайте травмы и предлагайте альтернативы.
+5. Тон — профессиональный, мотивирующий, без вступлений/заключений.
+6. Поместить в Markdown, уложиться в {MAX_TOKENS_PLAN} токенов.
 """
 
+
 SYSTEM_PROMPT_REFINEMENT = f"""
-You are an expert Strength and Conditioning coach assistant helping a user refine or understand their generated workout plan.
+You are an expert Strength & Conditioning ассистент, отвечаете на вопросы и вносите правки в уже сгенерированный план.
 
-You will receive the conversation history, including the user's initial profile, the generated plan, and previous interactions.
+Вам дано:
+- История переписки и текущий план (на русском, в Markdown).
+- Последний запрос пользователя.
 
-The last message in the history is the user's current request (question or modification suggestion).
-
-**Instructions:**
-1.  **Context is Key:** Base your response *entirely* on the provided conversation history and the user's latest request.
-2.  **Address the Request:**
-    *   **Questions:** Answer the user's question about the plan clearly and concisely, referencing specific parts of the plan if necessary.
-    *   **Modifications:** Acknowledge the suggested modification. If feasible and safe, explain how the plan could be adjusted (provide specific changes). If the modification is not advisable (e.g., unsafe, counterproductive to the goal), explain why and offer alternatives if possible.
-3.  **Safety First:** Do not suggest modifications that could compromise safety based on the user's profile or stated injuries.
-4.  **Tone:** Maintain an encouraging, knowledgeable, and helpful tone.
-5.  **Conciseness:** Keep responses focused and relatively brief (aim for under {MAX_TOKENS_REFINEMENT} tokens) suitable for Telegram.
+**Действуйте так:**
+1. Опирайтесь только на историю и последний запрос.
+2. Если пользователь спрашивает — отвечайте конкретно, ссылаясь на разделы плана.
+3. Если просит изменить — предложите безопасные правки (конкретные упражнения/подходы).
+4. Тон — поддерживающий и профессиональный.
+5. Ответ на русском, в Markdown, в пределах {MAX_TOKENS_REFINEMENT} токенов.
 """
 
 # --- Service Functions --- #
+
 
 async def generate_plan(user_data: Dict[str, Any]) -> Optional[str]:
     """Generates a workout plan using the OpenAI API."""
@@ -74,21 +86,21 @@ async def generate_plan(user_data: Dict[str, Any]) -> Optional[str]:
 
     # Format user data into a message for the prompt
     user_profile_summary = f"""
-    Here is the user's information:
-    - Age: {user_data.get('age', 'N/A')}
-    - Height: {user_data.get('height', 'N/A')}
-    - Weight: {user_data.get('weight', 'N/A')}
-    - Experience: {user_data.get('experience', 'N/A')}
-    - Squat (1RM or best set): {user_data.get('squat', 'N/A')}
-    - Bench Press (1RM or best set): {user_data.get('bench', 'N/A')}
-    - Deadlift (1RM or best set): {user_data.get('deadlift', 'N/A')}
-    - Injuries/Limitations: {user_data.get('injuries', 'None specified')}
-    - Primary Goal: {user_data.get('goal', 'N/A')}
+    При создании плана строго следуйте данным пользователя:
+    - Возраст: {user_data.get("age", "N/A")}
+    - Рост: {user_data.get("height", "N/A")}
+    - Вес: {user_data.get("weight", "N/A")}
+    - Опыт: {user_data.get("experience", "N/A")}
+    - Приседания (1RM или лучший результат): {user_data.get("squat", "N/A")}
+    - Жим лежа (1RM или лучший результат): {user_data.get("bench", "N/A")}
+    - Тяга (1RM или лучший результат): {user_data.get("deadlift", "N/A")}
+    - Травмы/ограничения: {user_data.get("injuries", "None specified")}
+    - Цель: {user_data.get("goal", "N/A")}
     """
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT_PLAN_GENERATION},
-        {"role": "user", "content": user_profile_summary}
+        {"role": "system", "content": user_profile_summary},
     ]
 
     try:
@@ -101,7 +113,7 @@ async def generate_plan(user_data: Dict[str, Any]) -> Optional[str]:
         )
         plan = response.choices[0].message.content
         logger.info("Plan generated successfully by OpenAI.")
-        logger.debug(f"OpenAI Response: {response}") # Log full response for debugging
+        logger.debug(f"OpenAI Response: {response}")  # Log full response for debugging
         return plan.strip() if plan else None
 
     except OpenAIError as e:
@@ -124,9 +136,7 @@ async def refine_plan(history: List[Dict[str, str]], user_request: str) -> Optio
     logger.debug(f"History sent to OpenAI: {history}")
 
     # Construct messages for the API call
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT_REFINEMENT}
-    ] + history # Add the full history
+    messages = [{"role": "system", "content": SYSTEM_PROMPT_REFINEMENT}] + history  # Add the full history
 
     try:
         response = await aclient.chat.completions.create(
@@ -146,4 +156,4 @@ async def refine_plan(history: List[Dict[str, str]], user_request: str) -> Optio
         return None
     except Exception as e:
         logger.exception(f"Unexpected error during plan refinement: {e}")
-        return None 
+        return None

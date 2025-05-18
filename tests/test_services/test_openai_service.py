@@ -3,7 +3,8 @@
 import os
 import pytest
 from dotenv import load_dotenv
-from openai import AsyncOpenAI, OpenAIError
+from langfuse.openai import AsyncOpenAI
+from openai import OpenAIError
 
 # Load environment variables for the test
 load_dotenv(override=True)
@@ -14,6 +15,7 @@ pytestmark = pytest.mark.asyncio
 # Conditionally skip tests if API key is missing
 API_KEY = os.getenv("OPENAI_API_KEY")
 REASON = "OPENAI_API_KEY environment variable not set or invalid."
+
 
 @pytest.mark.skipif(not API_KEY or "YOUR_OPENAI_API_KEY_HERE" in API_KEY, reason=REASON)
 async def test_openai_api_connectivity_and_auth():
@@ -30,10 +32,10 @@ async def test_openai_api_connectivity_and_auth():
         aclient = AsyncOpenAI(api_key=API_KEY)
         # Use a minimal chat completion call to verify auth and connectivity
         response = await aclient.chat.completions.create(
-            model="gpt-4o-mini", # Or another cheap model if preferred
+            model="gpt-4o-mini",  # Or another cheap model if preferred
             messages=[{"role": "user", "content": "Hello!"}],
-            max_tokens=10, # Keep it very short
-            temperature=0 # Minimal creativity needed
+            max_tokens=10,  # Keep it very short
+            temperature=0,  # Minimal creativity needed
         )
 
         # Basic assertion: Check if the call succeeded and we got some data
@@ -41,7 +43,7 @@ async def test_openai_api_connectivity_and_auth():
         assert len(response.choices) > 0
         assert response.choices[0].message is not None
         assert response.choices[0].message.content is not None
-        assert len(response.choices[0].message.content) > 0 # Ensure we got some response text
+        assert len(response.choices[0].message.content) > 0  # Ensure we got some response text
         print("OpenAI API connectivity and authentication successful.")
 
     except OpenAIError as e:
@@ -52,14 +54,16 @@ async def test_openai_api_connectivity_and_auth():
         if aclient:
             await aclient.close()
 
+
 # Placeholder for testing the generate_plan function (likely with mocks)
 async def test_generate_plan_mocked():
     """Placeholder for testing generate_plan logic with mocked API calls."""
     # TODO: Implement test using mocks (e.g., pytest-asyncio, unittest.mock)
     assert True
 
+
 # Placeholder for testing the refine_plan function (likely with mocks)
 async def test_refine_plan_mocked():
     """Placeholder for testing refine_plan logic with mocked API calls."""
     # TODO: Implement test using mocks
-    assert True 
+    assert True
