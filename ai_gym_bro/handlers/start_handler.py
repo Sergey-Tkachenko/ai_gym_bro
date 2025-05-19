@@ -16,26 +16,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear() # Clear data from previous sessions
 
     await update.message.reply_html(
-        f"Hi {user.mention_html()}! I'm your AI Gym Bro. 💪\n\n"
-        f"I need some information to create your personalized workout plan. "
-        f"Let's start with your age.\n\n"
-        f"You can type /cancel at any time to stop."
+        f"Привет {user.mention_html()}! Я твой AI Gym Bro. 💪\n\n"
+        f"Мне нужна некоторая информация, чтобы создать твой персональный план тренировок. "
+        f"Давай начнем с твоего возраста.\n\n"
+        f"В любой момент ты можешь написать /cancel, чтобы остановиться."
     )
-    await update.message.reply_text("How old are you?")
+    await update.message.reply_text("Сколько тебе лет?")
 
     return ASK_AGE # Transition to the first state
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    help_text = "🤖 *AI Gym Bro Commands*\n\n"
-    help_text += "I can help you generate a personalized workout plan!\n\n"
+    help_text = "🤖 *Команды AI Gym Bro*\n\n"
+    help_text += "Я могу помочь тебе создать персональный план тренировок!\n\n"
 
     # Add each command and its description
     for command, description in COMMAND_DESCRIPTIONS.items():
         help_text += f"/{command} - {description}\n"
 
-    help_text += "\nUse /help to see this message again."
+    help_text += "\nИспользуй /help, чтобы снова увидеть это сообщение."
 
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
@@ -45,7 +45,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     logger.info(f"User {user.id} ({user.username}) canceled the conversation.")
     await update.message.reply_text(
-        "Okay, operation cancelled. Talk to you later! Send /start if you change your mind."
+        "Хорошо, операция отменена. До встречи! Напиши /start, если передумаешь."
     )
     context.user_data.clear()
     return ConversationHandler.END 

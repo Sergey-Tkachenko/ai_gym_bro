@@ -80,14 +80,14 @@ async def _store_and_advance(
 async def received_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores age and asks for height."""
     return await _store_and_advance(
-        update, context, USER_DATA_AGE, "Got it. What is your height (e.g., cm or ft/in)?", ASK_HEIGHT
+        update, context, USER_DATA_AGE, "Понятно. Какой у вас рост (например, см или футы/дюймы)?", ASK_HEIGHT
     )
 
 
 async def received_height(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores height and asks for weight."""
     return await _store_and_advance(
-        update, context, USER_DATA_HEIGHT, "Thanks. And your current weight (e.g., kg or lbs)?", ASK_WEIGHT
+        update, context, USER_DATA_HEIGHT, "Спасибо. А ваш текущий вес (например, кг или фунты)?", ASK_WEIGHT
     )
 
 
@@ -97,7 +97,7 @@ async def received_weight(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         update,
         context,
         USER_DATA_WEIGHT,
-        "What is your resistance training experience level (e.g., beginner, intermediate, advanced)?",
+        "Какой у вас уровень опыта в силовых тренировках (например, начинающий, средний, продвинутый)?",
         ASK_EXPERIENCE,
     )
 
@@ -108,7 +108,7 @@ async def received_experience(update: Update, context: ContextTypes.DEFAULT_TYPE
         update,
         context,
         USER_DATA_EXPERIENCE,
-        "What is your current estimated 1 Rep Max (1RM) or recent best set for Squat?",
+        "Какой у вас текущий предполагаемый максимум в 1 повторении (1ПМ) или лучший подход в Приседаниях?",
         ASK_SQUAT,
     )
 
@@ -116,14 +116,14 @@ async def received_experience(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def received_squat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores squat max and asks for bench max."""
     return await _store_and_advance(
-        update, context, USER_DATA_SQUAT, "Okay. How about your Bench Press 1RM or best set?", ASK_BENCH
+        update, context, USER_DATA_SQUAT, "Хорошо. А ваш максимум в Жиме лежа 1ПМ или лучший подход?", ASK_BENCH
     )
 
 
 async def received_bench(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores bench max and asks for deadlift max."""
     return await _store_and_advance(
-        update, context, USER_DATA_BENCH, "And your Deadlift 1RM or best set?", ASK_DEADLIFT
+        update, context, USER_DATA_BENCH, "И ваш максимум в Становой тяге 1ПМ или лучший подход?", ASK_DEADLIFT
     )
 
 
@@ -133,7 +133,7 @@ async def received_deadlift(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         update,
         context,
         USER_DATA_DEADLIFT,
-        "Do you have any current injuries or physical limitations I should be aware of? (Type 'None' if not)",
+        "Есть ли у вас какие-либо текущие травмы или физические ограничения, о которых мне следует знать? (Напишите 'Нет', если нет)",
         ASK_INJURIES,
     )
 
@@ -145,11 +145,11 @@ async def received_injuries(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     logger.debug(f"User {update.effective_user.id}: Stored {USER_DATA_INJURIES} = {user_input}")
 
     keyboard = [
-        [InlineKeyboardButton(HYPERTROPHY, callback_data=HYPERTROPHY)],
-        [InlineKeyboardButton(POWERLIFTING, callback_data=POWERLIFTING)],
+        [InlineKeyboardButton("Гипертрофия", callback_data=HYPERTROPHY)],
+        [InlineKeyboardButton("Пауэрлифтинг", callback_data=POWERLIFTING)],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Finally, what is your primary training goal?", reply_markup=reply_markup)
+    await update.message.reply_text("Наконец, какова ваша основная цель тренировок?", reply_markup=reply_markup)
     return SELECT_GOAL
 
 
@@ -162,7 +162,7 @@ async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     logger.info(f"User {update.effective_user.id}: Selected goal {goal}")
 
     await query.edit_message_text(
-        text=f"Great! Goal selected: {goal}.\n\nGenerating your personalized plan now... This might take a moment. 🧠"
+        text=f"Отлично! Цель выбрана: {goal}.\n\nГенерирую ваш персональный план... Это может занять некоторое время. 🧠"
     )
 
     # --- Plan Generation --- (Transition happens here implicitly)
@@ -175,7 +175,7 @@ async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             # Initialize history for refinement
             context.user_data[USER_DATA_HISTORY] = history
 
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Here is your initial workout plan:")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Вот ваш начальный план тренировок:")
             # Send plan in chunks if too long (Telegram limit is 4096 chars)
             # Simple chunking for now
             for i in range(0, len(plan), 4000):
@@ -183,20 +183,20 @@ async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
             # Present refinement options
             keyboard = [
-                [InlineKeyboardButton("❓ Ask a Question", callback_data=ASK_QUESTION_CALLBACK)],
-                [InlineKeyboardButton("✏️ Suggest Modification", callback_data=MODIFY_PLAN_CALLBACK)],
-                [InlineKeyboardButton("🏁 Finish (Cancel)", callback_data="cancel_refinement")],  # Option to exit loop
+                [InlineKeyboardButton("❓ Задать вопрос", callback_data=ASK_QUESTION_CALLBACK)],
+                [InlineKeyboardButton("✏️ Предложить изменение", callback_data=MODIFY_PLAN_CALLBACK)],
+                [InlineKeyboardButton("🏁 Завершить (Отмена)", callback_data="cancel_refinement")],  # Option to exit loop
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await context.bot.send_message(
-                chat_id=update.effective_chat.id, text="What would you like to do next?", reply_markup=reply_markup
+                chat_id=update.effective_chat.id, text="Что бы вы хотели сделать дальше?", reply_markup=reply_markup
             )
             return AWAITING_REFINEMENT_CHOICE  # Go to new state
         else:
             logger.error(f"Plan generation failed for user {update.effective_user.id}")
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="Sorry, I encountered an error trying to generate your plan. Please try again later by sending /start.",
+                text="Извините, произошла ошибка при генерации вашего плана. Пожалуйста, попробуйте позже, отправив /start.",
             )
             context.user_data.clear()
             return ConversationHandler.END
@@ -205,7 +205,7 @@ async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         logger.exception(f"Exception during plan generation for user {update.effective_user.id}: {e}")
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="An unexpected error occurred during plan generation. Please try /start again.",
+            text="Произошла непредвиденная ошибка при генерации плана. Пожалуйста, попробуйте /start снова.",
         )
         context.user_data.clear()
         return ConversationHandler.END
@@ -221,23 +221,20 @@ async def received_refinement_choice(update: Update, context: ContextTypes.DEFAU
     if choice == ASK_QUESTION_CALLBACK:
         logger.info(f"User {update.effective_user.id} chose to ask a question.")
         context.user_data[USER_DATA_REFINEMENT_TYPE] = "ask"
-        await query.edit_message_text(text="Okay, please type your question about the plan.")
+        await query.edit_message_text(text="Хорошо, пожалуйста, напишите ваш вопрос о плане.")
         return AWAITING_REFINEMENT_INPUT
     elif choice == MODIFY_PLAN_CALLBACK:
         logger.info(f"User {update.effective_user.id} chose to suggest modification.")
         context.user_data[USER_DATA_REFINEMENT_TYPE] = "modify"
-        await query.edit_message_text(text="Okay, please describe the modification you'd like to suggest.")
+        await query.edit_message_text(text="Хорошо, пожалуйста, опишите изменение, которое вы хотели бы предложить.")
         return AWAITING_REFINEMENT_INPUT
     elif choice == "cancel_refinement":
         logger.info(f"User {update.effective_user.id} chose to finish refinement.")
-        await query.edit_message_text(text="Got it. Plan finalized! Send /start to create a new one.")
-        # Keep user_data for potential future reference? Or clear?
-        # context.user_data.clear() # Optional: clear if conversation is truly done
+        await query.edit_message_text(text="Понятно. План завершен! Отправьте /start для создания нового.")
         return ConversationHandler.END
     else:
         logger.warning(f"Received unexpected callback data in refinement choice: {choice}")
-        await query.edit_message_text(text="Sorry, something went wrong. Please try again or use /cancel.")
-        # Stay in the same state or end? Let's stay for now.
+        await query.edit_message_text(text="Извините, что-то пошло не так. Пожалуйста, попробуйте снова или используйте /cancel.")
         return AWAITING_REFINEMENT_CHOICE
 
 
@@ -252,78 +249,69 @@ async def process_refinement_input(update: Update, context: ContextTypes.DEFAULT
     if USER_DATA_HISTORY not in context.user_data or not context.user_data[USER_DATA_HISTORY]:
         logger.warning(f"User {user.id} in refinement state but no history found.")
         await update.message.reply_text(
-            "Something went wrong, I don't have the context. Please start over with /start."
+            "Что-то пошло не так, у меня нет контекста. Пожалуйста, начните заново с /start."
         )
         context.user_data.clear()
         return ConversationHandler.END
 
     history = context.user_data[USER_DATA_HISTORY]
-    # Add context about the type of request for the LLM?
-    # E.g.: history.append({"role": "user", "content": f"My request ({refinement_type}): {user_request}"})
-    # For now, just add the raw request:
     history.append({"role": "user", "content": user_request})
 
-    await update.message.reply_text("Got it. Thinking about your request... 🤔")
+    await update.message.reply_text("Понял. Обдумываю ваш запрос... 🤔")
 
     try:
         response, new_history = await openai_service.refine_plan(history)
 
         if response:
-            # Check response length for Telegram
             if len(response) > 4096:
                 logger.warning("Refinement response exceeds Telegram limit. Sending truncated.")
-                response_part = response[:4000] + "... (response truncated)"
+                response_part = response[:4000] + "... (ответ обрезан)"
             else:
                 response_part = response
 
-            context.user_data[USER_DATA_HISTORY] = new_history  # Update history
-            # Note: We might want to update USER_DATA_PLAN if the response implies a full plan change
-            # For MVP, we just show the response.
+            context.user_data[USER_DATA_HISTORY] = new_history
             await update.message.reply_text(response_part)
 
-            # Go back to asking for choice
             keyboard = [
-                [InlineKeyboardButton("❓ Ask Another Question", callback_data=ASK_QUESTION_CALLBACK)],
-                [InlineKeyboardButton("✏️ Suggest Another Modification", callback_data=MODIFY_PLAN_CALLBACK)],
-                [InlineKeyboardButton("🏁 Finish (Cancel)", callback_data="cancel_refinement")],
+                [InlineKeyboardButton("❓ Задать еще вопрос", callback_data=ASK_QUESTION_CALLBACK)],
+                [InlineKeyboardButton("✏️ Предложить еще изменение", callback_data=MODIFY_PLAN_CALLBACK)],
+                [InlineKeyboardButton("🏁 Завершить (Отмена)", callback_data="cancel_refinement")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text("What would you like to do next?", reply_markup=reply_markup)
-            return AWAITING_REFINEMENT_CHOICE  # Loop back to choice state
+            await update.message.reply_text("Что бы вы хотели сделать дальше?", reply_markup=reply_markup)
+            return AWAITING_REFINEMENT_CHOICE
         else:
             logger.error(f"Plan refinement failed for user {user.id}")
-            # Go back to asking for choice after failure?
             keyboard = [
-                [InlineKeyboardButton("❓ Try Asking Question", callback_data=ASK_QUESTION_CALLBACK)],
-                [InlineKeyboardButton("✏️ Try Suggesting Modification", callback_data=MODIFY_PLAN_CALLBACK)],
-                [InlineKeyboardButton("🏁 Cancel", callback_data="cancel_refinement")],
+                [InlineKeyboardButton("❓ Попробовать задать вопрос", callback_data=ASK_QUESTION_CALLBACK)],
+                [InlineKeyboardButton("✏️ Попробовать предложить изменение", callback_data=MODIFY_PLAN_CALLBACK)],
+                [InlineKeyboardButton("🏁 Отмена", callback_data="cancel_refinement")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(
-                "Sorry, I couldn't process that request. Try rephrasing or choose an option:", reply_markup=reply_markup
+                "Извините, я не смог обработать этот запрос. Попробуйте переформулировать или выберите опцию:", reply_markup=reply_markup
             )
-            return AWAITING_REFINEMENT_CHOICE  # Loop back to choice state even on failure
+            return AWAITING_REFINEMENT_CHOICE
 
     except Exception as e:
         logger.exception(f"Exception during plan refinement for user {user.id}: {e}")
-        # Go back to asking for choice after exception?
         keyboard = [
-            [InlineKeyboardButton("❓ Try Asking Question", callback_data=ASK_QUESTION_CALLBACK)],
-            [InlineKeyboardButton("✏️ Try Suggesting Modification", callback_data=MODIFY_PLAN_CALLBACK)],
-            [InlineKeyboardButton("🏁 Cancel", callback_data="cancel_refinement")],
+            [InlineKeyboardButton("❓ Попробовать задать вопрос", callback_data=ASK_QUESTION_CALLBACK)],
+            [InlineKeyboardButton("✏️ Попробовать предложить изменение", callback_data=MODIFY_PLAN_CALLBACK)],
+            [InlineKeyboardButton("🏁 Отмена", callback_data="cancel_refinement")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(
-            "An unexpected error occurred. Please try again or choose an option:", reply_markup=reply_markup
+            "Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова или выберите опцию:", reply_markup=reply_markup
         )
-        return AWAITING_REFINEMENT_CHOICE  # Loop back to choice state on exception
+        return AWAITING_REFINEMENT_CHOICE
 
 
 async def unknown_state_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles messages received in an unexpected state or with unexpected commands."""
     logger.warning(f"Received unexpected message/command in conversation from user {update.effective_user.id}")
     await update.message.reply_text(
-        "Sorry, I wasn't expecting that. If you're stuck, you can try /cancel and start over with /start."
+        "Извините, я не ожидал этого. Если вы застряли, попробуйте /cancel и начните заново с /start."
     )
 
 
