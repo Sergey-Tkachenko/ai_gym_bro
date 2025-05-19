@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AI Gym Bro Telegram Bot - Project Overview
+
+This project implements a Telegram bot, "AI Gym Bro," designed to generate personalized 5-week resistance training workout plans. It interacts with users to collect their physical attributes, training experience, goals, and any injuries, then leverages the OpenAI API (specifically GPT-4.1) to create and refine these plans.
+
+## Key Components:
+
+*   **Main Entry Point**: The application starts with [ai_gym_bro/main.py](mdc:ai_gym_bro/main.py).
+*   **Handlers**: User interactions and conversation flows are managed by handlers located in the [ai_gym_bro/handlers/](mdc:ai_gym_bro/handlers) directory.
+*   **Services**: External API interactions, primarily with OpenAI, are handled by services in the [ai_gym_bro/services/](mdc:ai_gym_bro/services) directory.
+*   **Configuration**: The bot relies on environment variables (e.g., `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`), typically loaded from a `.env` file.
+*   **Persistence**: Conversation state is persisted to ensure a seamless user experience across bot restarts, stored in [ai_gym_bro/persistence/bot_persistence.pkl](mdc:ai_gym_bro/persistence/bot_persistence.pkl).
+*   **Logging**: The bot uses Loguru for comprehensive logging, with output directed to both a file ([ai_gym_bro.log](mdc:ai_gym_bro.log)) and the console.

@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Services in AI Gym Bro
+
+The [ai_gym_bro/services/](mdc:ai_gym_bro/services) directory is intended for modules that interact with external services or encapsulate core business logic separate from the handlers.
+
+## OpenAI Service
+
+*   **[ai_gym_bro/services/openai_service.py](mdc:ai_gym_bro/services/openai_service.py)**: This crucial service handles all communications with the OpenAI API.
+    *   It initializes an asynchronous OpenAI client (`AsyncOpenAI` from `langfuse.openai`) using the `OPENAI_API_KEY` environment variable.
+    *   **Plan Generation**: The `generate_plan(user_data)` function takes the user's collected information, formats it into a prompt along with `SYSTEM_PROMPT_PLAN_GENERATION`, and calls the OpenAI Chat Completions API (model `gpt-4.1`) to create an initial workout plan. The prompt emphasizes a 5-week structure, Russian language output, and consideration of user experience level.
+    *   **Plan Refinement**: The `refine_plan(history, user_request)` function takes the conversation history (including the initial plan) and the user's latest request (question or modification). It uses `SYSTEM_PROMPT_REFINEMENT` to guide the AI in providing contextual answers or suggesting plan adjustments, also in Russian.
+    *   Constants like `MODEL_NAME`, `MAX_TOKENS_PLAN`, `MAX_TOKENS_REFINEMENT`, and `TEMPERATURE` are defined within this file to control the AI's behavior.
+    *   Error handling for API calls and logging of interactions are included.
