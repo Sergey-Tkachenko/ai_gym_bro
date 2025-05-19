@@ -2,7 +2,7 @@
 
 import os
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -11,8 +11,8 @@ from openai import OpenAIError
 
 # --- Constants --- #
 MODEL_NAME = "gpt-4.1"
-MAX_TOKENS_PLAN = 1500  # Adjust as needed for plan length
-MAX_TOKENS_REFINEMENT = 500  # Adjust as needed for refinement responses
+MAX_TOKENS_PLAN = 1000  # Adjust as needed for plan length
+MAX_TOKENS_REFINEMENT = 1000  # Adjust as needed for refinement responses
 TEMPERATURE = 0.7  # Adjust for creativity vs determinism
 
 # --- Load API Key --- #
@@ -76,11 +76,15 @@ You are an expert Strength & Conditioning ассистент, отвечаете
 # --- Service Functions --- #
 
 
-async def generate_plan(user_data: Dict[str, Any]) -> Optional[str]:
-    """Generates a workout plan using the OpenAI API."""
+async def generate_plan(user_data: Dict[str, Any]) -> Optional[Tuple[str, List[Dict[str, str]]]]:
+    """
+    Generates a workout plan using the OpenAI API.
+    Returns the plan string and the initial list of messages for history.
+    """
     if not aclient:
         logger.error("OpenAI client not initialized. Cannot generate plan.")
-        return "Error: OpenAI client not configured."
+        # Return a tuple indicating error, and empty history
+        return ("Error: OpenAI client not configured.", [])
 
     logger.info(f"Requesting plan generation for user data: {user_data}")
 
@@ -96,9 +100,10 @@ async def generate_plan(user_data: Dict[str, Any]) -> Optional[str]:
     - Тяга (1RM или лучший результат): {user_data.get("deadlift", "N/A")}
     - Травмы/ограничения: {user_data.get("injuries", "None specified")}
     - Цель: {user_data.get("goal", "N/A")}
-    """
+"""
 
-    messages = [
+    # initial_messages will be part of the history
+    initial_messages = [
         {"role": "system", "content": SYSTEM_PROMPT_PLAN_GENERATION},
         {"role": "system", "content": user_profile_summary},
     ]
@@ -106,42 +111,52 @@ async def generate_plan(user_data: Dict[str, Any]) -> Optional[str]:
     try:
         response = await aclient.chat.completions.create(
             model=MODEL_NAME,
-            messages=messages,
+            messages=initial_messages,  # Use initial_messages here
             temperature=TEMPERATURE,
             max_tokens=MAX_TOKENS_PLAN,
             timeout=120,
         )
-        plan = response.choices[0].message.content
+        plan_content = response.choices[0].message.content
         logger.info("Plan generated successfully by OpenAI.")
-        logger.debug(f"OpenAI Response: {response}")  # Log full response for debugging
-        return plan.strip() if plan else None
+        logger.debug(f"OpenAI Response: {response}")
+
+        if plan_content:
+            plan_str = plan_content.strip()
+            # Append assistant's response to the messages for history
+            history_for_refinement = initial_messages + [{"role": "assistant", "content": plan_str}]
+            return plan_str, history_for_refinement
+        else:
+            return None, []  # Return None for plan and empty history
 
     except OpenAIError as e:
         logger.error(f"OpenAI API error during plan generation: {e}")
-        return None
+        return None, []
     except Exception as e:
         logger.exception(f"Unexpected error during plan generation: {e}")
-        return None
+        return None, []
 
 
-async def refine_plan(history: List[Dict[str, str]], user_request: str) -> Optional[str]:
+async def refine_plan(history: List[Dict[str, str]]) -> Optional[str]:
     """Refines or answers questions about a plan using the OpenAI API and history."""
-    # Note: user_request is already appended to history by the handler
-
     if not aclient:
         logger.error("OpenAI client not initialized. Cannot refine plan.")
         return "Error: OpenAI client not configured."
 
-    logger.info(f"Requesting plan refinement based on history. Last user request: {user_request}")
-    logger.debug(f"History sent to OpenAI: {history}")
+    # The last message in history is the current user_request
+    if not history or history[-1]["role"] != "user":
+        logger.error("History is empty or last message is not from user for refinement.")
+        return "Error: Invalid history state for refinement."
 
-    # Construct messages for the API call
-    messages = [{"role": "system", "content": SYSTEM_PROMPT_REFINEMENT}] + history  # Add the full history
+    logger.info(f"Requesting plan refinement. Last user request: {history[-1]['content']}")
+    logger.debug(f"Full history sent to OpenAI for refinement: {history}")
+
+    # Construct messages for the API call - system prompt must be first
+    # messages_for_api = history + [{"role": "system", "content": SYSTEM_PROMPT_REFINEMENT}]
 
     try:
         response = await aclient.chat.completions.create(
             model=MODEL_NAME,
-            messages=messages,
+            messages=history,
             temperature=TEMPERATURE,
             max_tokens=MAX_TOKENS_REFINEMENT,
             timeout=120,
@@ -149,7 +164,14 @@ async def refine_plan(history: List[Dict[str, str]], user_request: str) -> Optio
         refinement_response = response.choices[0].message.content
         logger.info("Plan refinement/answer generated successfully by OpenAI.")
         logger.debug(f"OpenAI Response: {response}")
-        return refinement_response.strip() if refinement_response else None
+
+        refinement_response = refinement_response.strip() if refinement_response else None
+
+        if refinement_response:
+            history.append({"role": "assistant", "content": refinement_response})
+            return refinement_response, history
+        else:
+            return None, history
 
     except OpenAIError as e:
         logger.error(f"OpenAI API error during plan refinement: {e}")

@@ -14,7 +14,7 @@ services:
       - .env
     # Ensure that init.sh is present in the image or mounted as a volume.
     user: "root"
-    command: ["/bin/sh", "-c", "chmod +x proxy-init.sh && ./proxy-init.sh && sleep infinity"]
+    command: ["/bin/sh", "-c", "chmod +x proxy-init.sh && ./proxy-init.sh && poetry install && poetry run run-bot"]
     network_mode: "service:proxy"
 
   proxy:
