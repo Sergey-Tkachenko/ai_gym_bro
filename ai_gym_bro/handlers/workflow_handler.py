@@ -37,6 +37,7 @@ from ai_gym_bro.handlers.common import (
     USER_DATA_PLAN,
     USER_DATA_HISTORY,
     USER_DATA_REFINEMENT_TYPE,  # New user data key
+    TRAINING_PLAN_INSTRUCTIONS,  # Add this import
 )
 from ai_gym_bro.handlers.start_handler import start, cancel  # Import start for entry point, cancel for fallback
 
@@ -157,9 +158,14 @@ async def received_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             # Initialize history for refinement
             context.user_data[USER_DATA_HISTORY] = history
 
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Вот ваш начальный план тренировок:")
+            # Send instructions first
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=TRAINING_PLAN_INSTRUCTIONS,
+                parse_mode="Markdown"
+            )
+
             # Send plan in chunks if too long (Telegram limit is 4096 chars)
-            # Simple chunking for now
             for i in range(0, len(plan), 4000):
                 await context.bot.send_message(chat_id=update.effective_chat.id, text=plan[i : i + 4000])
 
