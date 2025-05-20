@@ -23,8 +23,8 @@ from ai_gym_bro.handlers.common import (
     AWAITING_REFINEMENT_CHOICE,
     AWAITING_REFINEMENT_INPUT,  # Updated states
     GOAL_OPTIONS,
-    HYPERTROPHY,
-    POWERLIFTING,
+    MUSCLE_GAIN,
+    FAT_LOSS,
     ASK_QUESTION_CALLBACK,
     MODIFY_PLAN_CALLBACK,  # Refinement callback data
     USER_DATA_AGE,
@@ -127,8 +127,8 @@ async def received_injuries(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     logger.debug(f"User {update.effective_user.id}: Stored {USER_DATA_INJURIES} = {user_input}")
 
     keyboard = [
-        [InlineKeyboardButton("Гипертрофия", callback_data=HYPERTROPHY)],
-        [InlineKeyboardButton("Пауэрлифтинг", callback_data=POWERLIFTING)],
+        [InlineKeyboardButton("Набор мышечной массы", callback_data=MUSCLE_GAIN)],
+        [InlineKeyboardButton("Уменьшение жировой массы", callback_data=FAT_LOSS)],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Наконец, какова ваша основная цель тренировок?", reply_markup=reply_markup)

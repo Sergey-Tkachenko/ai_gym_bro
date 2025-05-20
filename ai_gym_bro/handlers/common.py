@@ -15,9 +15,9 @@
 ) = range(10) # Updated range
 
 # Goal options
-HYPERTROPHY = "Hypertrophy"
-POWERLIFTING = "Powerlifting"
-GOAL_OPTIONS = [HYPERTROPHY, POWERLIFTING]
+MUSCLE_GAIN = "Набор мышечной массы"
+FAT_LOSS = "Уменьшение жировой массы"
+GOAL_OPTIONS = [MUSCLE_GAIN, FAT_LOSS]
 
 # User data keys (for context.user_data)
 USER_DATA_AGE = "age"
