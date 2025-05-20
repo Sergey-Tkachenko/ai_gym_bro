@@ -6,15 +6,13 @@
     ASK_HEIGHT,
     ASK_WEIGHT,
     ASK_EXPERIENCE,
-    ASK_SQUAT,
     ASK_BENCH,
-    ASK_DEADLIFT,
     ASK_INJURIES,
     SELECT_GOAL,
     GENERATING_PLAN,
     AWAITING_REFINEMENT_CHOICE,
     AWAITING_REFINEMENT_INPUT,
-) = range(12) # Updated range
+) = range(10) # Updated range
 
 # Goal options
 HYPERTROPHY = "Hypertrophy"
@@ -26,9 +24,7 @@ USER_DATA_AGE = "age"
 USER_DATA_HEIGHT = "height"
 USER_DATA_WEIGHT = "weight"
 USER_DATA_EXPERIENCE = "experience"
-USER_DATA_SQUAT = "squat"
 USER_DATA_BENCH = "bench"
-USER_DATA_DEADLIFT = "deadlift"
 USER_DATA_INJURIES = "injuries"
 USER_DATA_GOAL = "goal"
 USER_DATA_PLAN = "plan"

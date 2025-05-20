@@ -16,9 +16,7 @@ from ai_gym_bro.handlers.common import (
     ASK_HEIGHT,
     ASK_WEIGHT,
     ASK_EXPERIENCE,
-    ASK_SQUAT,
     ASK_BENCH,
-    ASK_DEADLIFT,
     ASK_INJURIES,
     SELECT_GOAL,
     GENERATING_PLAN,
@@ -33,9 +31,7 @@ from ai_gym_bro.handlers.common import (
     USER_DATA_HEIGHT,
     USER_DATA_WEIGHT,
     USER_DATA_EXPERIENCE,
-    USER_DATA_SQUAT,
     USER_DATA_BENCH,
-    USER_DATA_DEADLIFT,
     USER_DATA_INJURIES,
     USER_DATA_GOAL,
     USER_DATA_PLAN,
@@ -103,36 +99,22 @@ async def received_weight(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def received_experience(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Stores experience and asks for squat max."""
+    """Stores experience and asks for bench max."""
     return await _store_and_advance(
         update,
         context,
         USER_DATA_EXPERIENCE,
-        "Какой у вас текущий предполагаемый максимум в 1 повторении (1ПМ) или лучший подход в Приседаниях?",
-        ASK_SQUAT,
-    )
-
-
-async def received_squat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Stores squat max and asks for bench max."""
-    return await _store_and_advance(
-        update, context, USER_DATA_SQUAT, "Хорошо. А ваш максимум в Жиме лежа 1ПМ или лучший подход?", ASK_BENCH
+        "Какой у вас текущий предполагаемый максимум в 1 повторении (1ПМ) или лучший подход в Жиме лежа?",
+        ASK_BENCH,
     )
 
 
 async def received_bench(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Stores bench max and asks for deadlift max."""
-    return await _store_and_advance(
-        update, context, USER_DATA_BENCH, "И ваш максимум в Становой тяге 1ПМ или лучший подход?", ASK_DEADLIFT
-    )
-
-
-async def received_deadlift(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Stores deadlift max and asks for injuries."""
+    """Stores bench max and asks for injuries."""
     return await _store_and_advance(
         update,
         context,
-        USER_DATA_DEADLIFT,
+        USER_DATA_BENCH,
         "Есть ли у вас какие-либо текущие травмы или физические ограничения, о которых мне следует знать? (Напишите 'Нет', если нет)",
         ASK_INJURIES,
     )
@@ -327,9 +309,7 @@ def create_workflow_handler() -> ConversationHandler:
             ASK_HEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_height)],
             ASK_WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_weight)],
             ASK_EXPERIENCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_experience)],
-            ASK_SQUAT: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_squat)],
             ASK_BENCH: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_bench)],
-            ASK_DEADLIFT: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_deadlift)],
             ASK_INJURIES: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_injuries)],
             SELECT_GOAL: [CallbackQueryHandler(received_goal)],
             # Note: GENERATING_PLAN is a transient state handled within received_goal
@@ -338,7 +318,6 @@ def create_workflow_handler() -> ConversationHandler:
                     received_refinement_choice,
                     pattern=f"^({ASK_QUESTION_CALLBACK}|{MODIFY_PLAN_CALLBACK}|cancel_refinement)$",
                 )
-                # Add MessageHandler here? Or handle unexpected text via fallback?
             ],
             AWAITING_REFINEMENT_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_refinement_input)],
         },

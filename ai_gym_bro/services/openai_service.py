@@ -95,9 +95,7 @@ async def generate_plan(user_data: Dict[str, Any]) -> Optional[Tuple[str, List[D
     - Рост: {user_data.get("height", "N/A")}
     - Вес: {user_data.get("weight", "N/A")}
     - Опыт: {user_data.get("experience", "N/A")}
-    - Приседания (1RM или лучший результат): {user_data.get("squat", "N/A")}
     - Жим лежа (1RM или лучший результат): {user_data.get("bench", "N/A")}
-    - Тяга (1RM или лучший результат): {user_data.get("deadlift", "N/A")}
     - Травмы/ограничения: {user_data.get("injuries", "None specified")}
     - Цель: {user_data.get("goal", "N/A")}
 """
