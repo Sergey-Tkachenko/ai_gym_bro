@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Handlers in AI Gym Bro
+
+The [ai_gym_bro/handlers/](mdc:ai_gym_bro/handlers) directory contains the logic for managing user interactions and the conversation workflow of the Telegram bot.
+
+## Key Handler Files:
+
+*   **[ai_gym_bro/handlers/workflow_handler.py](mdc:ai_gym_bro/handlers/workflow_handler.py)**: This is the core of the conversation management. It uses a `ConversationHandler` from the `python-telegram-bot` library to guide users through a multi-step process of data collection (age, height, weight, experience, 1RMs, injuries, goals), initiates plan generation via the OpenAI service, and then handles the plan refinement loop (asking questions, suggesting modifications).
+
+*   **[ai_gym_bro/handlers/start_handler.py](mdc:ai_gym_bro/handlers/start_handler.py)**: This file manages the initial `/start` command which serves as the entry point to the main conversation workflow. It also handles the `/help` command (providing command descriptions) and the `/cancel` command (to exit the current conversation).
+
+*   **[ai_gym_bro/handlers/common.py](mdc:ai_gym_bro/handlers/common.py)**: This utility file defines constants used across multiple handlers. These include:
+    *   Conversation states (e.g., `ASK_AGE`, `SELECT_GOAL`, `AWAITING_REFINEMENT_CHOICE`).
+    *   Keys for storing user data in the conversation context (e.g., `USER_DATA_AGE`, `USER_DATA_PLAN`).
+    *   Callback data for inline keyboard buttons (e.g., `ASK_QUESTION_CALLBACK`).
+    *   Command descriptions for `/help` and bot command setup.
+
+The main workflow is orchestrated by `create_workflow_handler()` in `workflow_handler.py`, which defines the states, transitions, and fallbacks for the conversation.

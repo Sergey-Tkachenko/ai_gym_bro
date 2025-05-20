@@ -1,21 +1,29 @@
 {
     "name": "Telegram Bot Development",
-    "dockerFile": "../Dockerfile.dev",
+    "dockerComposeFile": [
+        "../docker-compose.yaml",
+        "docker-compose.override.yml"
+    ],
+    "service": "app",
+    "overrideCommand": true,
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-python.python",
                 "ms-python.vscode-pylance",
-                "charliermarsh.ruff"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
-                "python.analysis.extraPaths": ["/app"],
+                "python.analysis.extraPaths": [
+                    "/app"
+                ],
                 "python.linting.enabled": true,
                 "python.linting.pylintEnabled": false,
                 "python.formatting.provider": "ruff",
                 "editor.formatOnSave": true,
-                "editor.rulers": [120],
+                "editor.rulers": [
+                    120
+                ],
                 "files.exclude": {
                     "**/__pycache__": true,
                     "**/.pytest_cache": true,
@@ -27,5 +35,10 @@
     "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
     "workspaceFolder": "/app",
     "forwardPorts": [],
-    "runArgs": ["--env-file", ".env"]
-} 
+    "runArgs": [
+        "--command",
+        "/bin/sh",
+        "-c",
+        "chmod +x proxy-init.sh && ./proxy-init.sh && poetry install && sleep inf"
+    ]
+}

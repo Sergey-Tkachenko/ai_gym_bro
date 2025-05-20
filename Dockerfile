@@ -1,5 +1,17 @@
 FROM python:3.12-slim
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    inetutils-ping \
+    traceroute \
+    pkg-config \
+    default-libmysqlclient-dev \
+    iptables ipset dnsutils \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -9,13 +21,6 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Add Poetry to PATH
 ENV PATH="$POETRY_HOME/bin:$PATH"
-
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl \
-        build-essential \
-    && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -

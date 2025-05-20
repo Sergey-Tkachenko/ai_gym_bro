@@ -51,14 +51,12 @@ def main() -> None:
         .build()
     )
 
-    # Create the main workflow handler
+    # Add top-level command handlers first (like /help)
+    application.add_handler(CommandHandler("help", start_handler.help_command))
+
+    # Create and add the main workflow handler
     conv_handler = workflow_handler.create_workflow_handler()
     application.add_handler(conv_handler)
-
-    # Add other top-level command handlers (like /help)
-    # Ensure /start is primarily handled by ConversationHandler entry point
-    application.add_handler(CommandHandler("help", start_handler.help_command))
-    # Note: /cancel is handled within the ConversationHandler's fallbacks
 
     # Configure logging for PTB
     # logging.basicConfig( # Handled by Loguru setup potentially
