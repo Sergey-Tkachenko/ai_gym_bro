@@ -1,0 +1,5 @@
+version: '3.8'
+
+services:
+  app:
+    command: ["/bin/sh", "-c", "chmod +x proxy-init.sh && ./proxy-init.sh && poetry install && sleep infinity"]

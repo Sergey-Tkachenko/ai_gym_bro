@@ -1,6 +1,9 @@
 {
     "name": "Telegram Bot Development",
-    "dockerComposeFile": "../docker-compose.yaml",
+    "dockerComposeFile": [
+        "../docker-compose.yaml",
+        "docker-compose.override.yml"
+    ],
     "service": "app",
     "overrideCommand": true,
     "customizations": {
